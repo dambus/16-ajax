@@ -23,7 +23,7 @@ const renderCountry = function (data, className) {
       `;
 
   countriesContainer.insertAdjacentHTML('beforeend', html);
-  countriesContainer.style.opacity = 1;
+  // countriesContainer.style.opacity = 1;
 };
 
 // const getCountryAndNeighbour = function (country) {
@@ -58,23 +58,71 @@ const renderCountry = function (data, className) {
 // };
 
 // getCountryAndNeighbour('japan');
+const renderError = function (msg) {
+  countriesContainer.insertAdjacentText('beforeend', msg);
+};
 
+const getJSON = function (url, errorMsg = `Something went wrong`) {
+  return fetch(url).then(response => {
+    if (!response.ok) throw new Error(`Country not found ${response.status}`);
+    return response.json();
+  });
+};
 const getCountryData = function (country) {
   //country 1
-  fetch(`https://restcountries.com/v2/name/${country}`)
-    .then(response => response.json())
+  getJSON(`https://restcountries.com/v2/name/${country}`, `Country not found`)
     .then(data => {
-      console.log(data);
       renderCountry(data[0]);
       const neighbour = data[0].borders[0];
 
       if (!neighbour) return;
 
       //country 2
-      return fetch(`https://restcountries.com/v2/alpha/${neighbour}`);
+      return getJSON(
+        `https://restcountries.com/v2/alpha/${neighbour}`,
+        `Country not found`
+      );
     })
-    .then(response => response.json())
-    .then(data => renderCountry(data, 'neighbour'));
+    .then(data => renderCountry(data, 'neighbour'))
+    .catch(err => {
+      renderError(`something went wrong - ${err.message}. Please try again.`);
+    })
+    .finally(() => {
+      countriesContainer.style.opacity = 1;
+    });
 };
 
-getCountryData('hungary');
+const whereAmI = function (lat, lng) {
+  let nameOfCountry;
+  fetch(
+    `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
+    // `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=52.508&longitude=13.381&localityLanguage=en`
+  )
+    .then(response => {
+      // console.log(response.json());
+      return response.json();
+    })
+    .then(function (data) {
+      // console.log(data);
+      console.log(`You are in ${data.city}, ${data.countryName}`);
+      nameOfCountry = data.countryName;
+    })
+    .catch(err => {
+      countriesContainer.insertAdjacentText(
+        `Something went wrong - ${err.message}`
+      );
+    })
+    .finally(() => {
+      // console.log(nameOfCountry);
+      getCountryData(nameOfCountry);
+      countriesContainer.style.opacity = 1;
+    });
+};
+
+// whereAmI(52.508, 13.381);
+whereAmI(19.037, 72.873);
+// whereAmI(-33.933, 18.474);
+
+// btn.addEventListener('click', () => {
+//   getCountryData('australia');
+// });
